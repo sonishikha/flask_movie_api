@@ -23,17 +23,12 @@ def hello_world():
 @app.route("/movies", methods = ["GET"])
 def movies():
     try:
-        request_data = request.args.get("limit")
-        print(request_data)
+        
         response = []
         
         #pagination
-        limit = 10
-        if request_data["limit"] != "":
-            limit = request_data["limit"]
-        page = 1
-        if request_data["page"] != "":
-            page = request_data["page"]
+        limit = int(request.args.get("limit", 1))
+        page = int(request.args.get("page", 10))
         offset = (page-1)*limit
 
         # Execute the query
