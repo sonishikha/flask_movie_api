@@ -27,14 +27,48 @@ def movies():
         response = []
         
         #pagination
-        limit = int(request.args.get("limit", 1))
-        page = int(request.args.get("page", 10))
+        limit = int(request.args.get("limit", 10))
+        page = int(request.args.get("page", 1))
         offset = (page-1)*limit
 
         # Execute the query
-        result = collection.find({}).sort('_id', pymongo.ASCENDING).skip(offset).limit(limit)
+        pipeline = [
+            {
+                "$project": {
+                    "id" : 1,
+                    "title":1,
+                    "imdb_rating" : "$imdb.rating",
+                    "num_mflix_comments" : 1,  
+                    "poster": {
+                        "$cond": {
+                            "if": {"$eq": [{"$type": "$poster"}, "missing"]},
+                            "then": "",  # If 'poster' field is missing, project empty string
+                            "else": "$poster"  # Otherwise, project the value of 'poster'
+                        }
+                    },
+                    "released": {
+                        "$cond": {
+                            "if": {"$eq": [{"$type": "$released"}, "missing"]},
+                            "then": "",  # If 'released' field is missing, project empty string
+                            "else": "$released"  # Otherwise, project the value of 'released'
+                        }
+                    }
+                }
+            },
+            {
+                "$sort": {"_id": pymongo.ASCENDING}  # Sort by '_id' in ascending order
+            },
+            {
+                "$skip": offset  # Skip 'offset' documents
+            },
+            {
+                "$limit": limit  # Limit the number of documents to 'limit'
+            }
+        ]
+        result = collection.aggregate(pipeline)
+
         for data in result:
-            response.append({"id":str(data["_id"]), "title":data["title"], "released":data["released"], "imdb_rating":data["imdb"]['rating'], "no_of_comments":data["num_mflix_comments"], "poster":[]})
+            response.append({"id":str(data["_id"]), "title":data["title"], "released":data["released"], "imdb_rating":data["imdb_rating"], "no_of_comments":data["num_mflix_comments"], "poster":data["poster"]})
 
     except Exception as e:
         return {"error": str(e)}
