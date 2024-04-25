@@ -3,6 +3,7 @@ import pymongo
 from flask import Flask, render_template
 from flask import request, jsonify
 from flask_cors import CORS
+from bson.objectid import ObjectId
 
 
 app = Flask(__name__)
@@ -23,7 +24,6 @@ def hello_world():
 @app.route("/movies", methods = ["GET"])
 def movies():
     try:
-        
         response = []
         
         #pagination
@@ -34,17 +34,31 @@ def movies():
         # Execute the query
         result = collection.find({}).sort('_id', pymongo.ASCENDING).skip(offset).limit(limit)
         for data in result:
-            response.append({"title":data["title"], "released":data["released"], "imdb_rating":data["imdb"]['rating'], "no_of_comments":data["num_mflix_comments"], "poster":[]})
+            response.append({"id":str(data["_id"]), "title":data["title"], "released":data["released"], "imdb_rating":data["imdb"]['rating'], "no_of_comments":data["num_mflix_comments"], "poster":[]})
 
     except Exception as e:
         return {"error": str(e)}
 
     return jsonify(response)
 
-@app.route('/movie/<int:movie_id>')
-def show_post(movie_id):
-    # show the post with the given id, the id is an integer
-    return f'Post {movie_id}'
+@app.route('/movie/<string:movie_id>', methods=['GET'])
+def movie(movie_id):
+    try:
+        response = []
+        #Convert string movie_id to ObjectId
+        object_id = ObjectId(movie_id)
+        
+        # Execute the query
+        result = collection.find_one({"_id": object_id})
+        if result:
+            result['_id'] = str(result['_id'])
+            response = result
+        else:
+            response = {"message":"No data found", "code":404, "status":"error"}
+    except Exception as e:
+        return {"error": str(e)}
+    
+    return jsonify(response)
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
