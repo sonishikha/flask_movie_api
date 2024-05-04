@@ -94,5 +94,50 @@ def movie(movie_id):
     
     return jsonify(response)
 
+@app.route("/genres", methods=["GET"])
+def genres():
+    try:
+        pipeline = [
+            {"$unwind": "$genres"},
+            {"$group": {"_id": {"genres": "$genres"}, "count": {"$sum": 1}}}
+        ]
+        result = collection.aggregate(pipeline)
+        response = []
+        
+        if result:
+            for entry in result:
+                response.append({"genres": str(entry["_id"]["genres"]), "count": int(entry["count"])})
+        else:
+            response = {"message": "No data found", "code": 404, "status": "error"}
+
+    except Exception as e:
+        return {"error": str(e)}
+    
+    return jsonify(response)
+
+
+@app.route("/languages", methods=["GET"])
+def languages():
+    try:
+        pipeline = [
+            {"$unwind": "$languages"},
+            {"$group": {"_id": {"languages": "$languages"}, "count": {"$sum": 1}}}
+        ]
+        
+        result = collection.aggregate(pipeline)
+        response = []
+        
+        if result:
+            for entry in result:
+                response.append({"languages": str(entry["_id"]["languages"]), "count": int(entry["count"])})
+        else:
+            response = {"message": "No data found", "code": 404, "status": "error"}
+
+    except Exception as e:
+        return {"error": str(e)}
+    
+    return jsonify(response)
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
