@@ -15,3 +15,10 @@
 
 ------------------
 listing - name,release time,imdb rating, number of comments,poster.
+
+comments collection
+movie_id : foreign key to id in movies db
+comments : {
+    id: 1, comment: "some text", like : 1, dislike: 1, username: test, datetime: date time
+    id: 2, comment: "some text", like : 1, dislike: 1, username: test, datetime: date time
+}
