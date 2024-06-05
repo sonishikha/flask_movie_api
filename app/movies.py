@@ -1,28 +1,14 @@
-import pymongo
-
-from flask import Flask, render_template
-from flask import request, jsonify
-from flask_cors import CORS
+from flask import Blueprint, jsonify, request
+from .db import get_db
 from bson.objectid import ObjectId
+from .config import Config
 
+movies_bp = Blueprint('movies', __name__)
+db = get_db()
+db_conn = db.movies
 
-app = Flask(__name__)
-cors = CORS(app)
-
-# Connection URI for MongoDB
-mongo_uri = "mongodb+srv://dummy_project:uiFnFpWyRq02tucx@cluster0.eqfltw8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-# Connect to MongoDB
-client = pymongo.MongoClient(mongo_uri)
-db = client["sample_mflix"]
-collection = db["movies"]
-
-
-@app.route("/")
-def hello_world():
-    return render_template("index.html")
-
-@app.route("/movies", methods = ["GET"])
-def movies():
+@movies_bp.route("/movies", methods = ["GET"])
+def get_movies():
     try:
         response = []
         
@@ -56,7 +42,7 @@ def movies():
                 }
             },
             {
-                "$sort": {"_id": pymongo.ASCENDING}  # Sort by '_id' in ascending order
+                "$sort": {"_id": 1}  # Sort by '_id' in ascending order
             },
             {
                 "$skip": offset  # Skip 'offset' documents
@@ -65,7 +51,7 @@ def movies():
                 "$limit": limit  # Limit the number of documents to 'limit'
             }
         ]
-        result = collection.aggregate(pipeline)
+        result = db_conn.aggregate(pipeline)
 
         for data in result:
             response.append({"id":str(data["_id"]), "title":data["title"], "released":data["released"], "imdb_rating":data["imdb_rating"], "no_of_comments":data["num_mflix_comments"], "poster":data["poster"]})
@@ -75,15 +61,15 @@ def movies():
 
     return jsonify(response)
 
-@app.route('/movie/<string:movie_id>', methods=['GET'])
-def movie(movie_id):
+@movies_bp.route('/movies/<string:movie_id>', methods=['GET'])
+def get_movie(movie_id):
     try:
         response = []
         #Convert string movie_id to ObjectId
         object_id = ObjectId(movie_id)
         
         # Execute the query
-        result = collection.find_one({"_id": object_id})
+        result = db_conn.find_one({"_id": object_id})
         if result:
             result['_id'] = str(result['_id'])
             response = result
@@ -94,14 +80,14 @@ def movie(movie_id):
     
     return jsonify(response)
 
-@app.route("/genres", methods=["GET"])
-def genres():
+@movies_bp.route("/genres", methods=["GET"])
+def get_genres():
     try:
         pipeline = [
             {"$unwind": "$genres"},
             {"$group": {"_id": {"genres": "$genres"}, "count": {"$sum": 1}}}
         ]
-        result = collection.aggregate(pipeline)
+        result = db_conn.aggregate(pipeline)
         response = []
         
         if result:
@@ -116,15 +102,15 @@ def genres():
     return jsonify(response)
 
 
-@app.route("/languages", methods=["GET"])
-def languages():
+@movies_bp.route("/languages", methods=["GET"])
+def get_languages():
     try:
         pipeline = [
             {"$unwind": "$languages"},
             {"$group": {"_id": {"languages": "$languages"}, "count": {"$sum": 1}}}
         ]
         
-        result = collection.aggregate(pipeline)
+        result = db_conn.aggregate(pipeline)
         response = []
         
         if result:
@@ -137,7 +123,3 @@ def languages():
         return {"error": str(e)}
     
     return jsonify(response)
-
-
-if __name__ == '__main__':
-    app.run(debug=True, port=8000)
