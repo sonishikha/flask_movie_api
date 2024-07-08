@@ -12,6 +12,10 @@
 - get_genre - will query all the distinct genres and provide result accordingly.
 - get_languages
 
+comments
+add - 
+get
+delete
 
 ------------------
 listing - name,release time,imdb rating, number of comments,poster.
